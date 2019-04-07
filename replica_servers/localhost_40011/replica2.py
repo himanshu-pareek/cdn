@@ -5,10 +5,12 @@ import pickle
 import os
 
 s = socket.socket()             # Create a socket object
-host = socket.gethostbyname("10.5.31.207")     # Get local machine name
-port = 60009                 # Reserve a port for your service.
+host = socket.gethostname()     # Get local machine name
+port = 40011
+s.bind(('', port))            # Bind to the port
+s.listen(5)                 # Reserve a port for your service.
+print ('Replica 1 listening on port %d' %(port))
 
-s.connect((host, port))
 
 def receiveFile (s):
   s.send ('1')
@@ -40,8 +42,11 @@ def receiveFile (s):
   s.send ('111')
 
 while True:
-  if (s.recv(1024) == '000'):
-    receiveFile (s)
+  conn, addr = s.accept()
+  print ('Connected to origin')
+  while True:
+    if (conn.recv(1024) == '000'):
+      receiveFile (conn)
 
 s.close()
 print('connection closed')
