@@ -1,56 +1,58 @@
-# server.py
+# client.py
 
 import socket                   # Import socket module
 import pickle
 import os
 
-port = 60010                   # Reserve a port for your service.
 s = socket.socket()             # Create a socket object
 host = socket.gethostname()     # Get local machine name
-s.bind((host, port))            # Bind to the port
-s.listen(5)                     # Now wait for client connection.
+port = 40012
+s.bind(('', port))            # Bind to the port
+s.listen(5)                 # Reserve a port for your service.
+print ('Replica 2 listening on port %d' %(port))
 
-print('Server listening....')
 
-def sendFile (conn, filename):
+def receiveFile (s):
+  s.send ('1')
+  file_size = s.recv(1024)
+  (filename, size) = file_size.split ('||||')
+  s.send ('11')
+  full_path = os.path.join (host, filename)
+  fname = full_path.split('/')[-1]
+  dir_path = '/'.join(full_path.split('/')[:-1])
+  os.system("mkdir -p " + dir_path)
 
-   conn.send ("000")
-   if (conn.recv(1024) != '1'):
-      return
-   filesize = os.path.getsize (filename)
-   conn.send (filename + '||||' + str (filesize))
-   if (conn.recv (1024) != '11'):
-      return
-   f = open(filename,'rb')
+  with open(full_path, 'wb') as f:
+    print ('file opened')
+    chunks = int(size) / 1024
+    last_size = int(size) - chunks * 1024
+    for i in range (chunks):
+      # print('receiving data...')
+      data = s.recv(1024)
+      # print('data=%s', (data))
+      if not data:
+          break
+      # write data to a file
+      f.write(data)
 
-   l = f.read(1024)
-   while (l):
-      conn.send(l)
-      #  print('Sent ',repr(l))
-      l = f.read(1024)
-   f.close()
-   if (conn.recv (1024) == '111'):
-      print ('Done sending ' + filename)
-   else:
-      print ('Error in sending ' + filename)
-
-def share_dir(conn, dir_name):
-   lis = os.listdir(dir_name)
-   for i in lis:
-      if(os.path.isdir(os.path.join(dir_name, i)) == 1):
-         share_dir(conn, os.path.join(dir_name, i))
-      else:
-         sendFile(conn, os.path.join(dir_name, i))
-
+    data = s.recv (last_size)
+    print ('data =', data)
+    f.write (data)
+    # f.close()
+  print ('file closed:', full_path)
+  s.send ('111')
 
 while True:
-   conn, addr = s.accept()    # Establish connection with client.
-   print ('Got connection from', addr)
-   # data = conn.recv(1024)
-   share_dir(conn, 'a')
-   # lis = os.listdir (path)
-   # for filename in lis:
-   #    filename = os.path.join (path, filename)
-   #    sendFile (conn, filename)
-   conn.send('Thank you for connecting')
-   conn.close()
+  conn, addr = s.accept()
+  host = addr[0]
+  print ('Connected to origin')
+  while True:
+    res = conn.recv (1024)
+    # print ('res from origin =', res)
+    if (res == '000'):
+      receiveFile (conn)
+
+s.close()
+print('connection closed')
+
+
