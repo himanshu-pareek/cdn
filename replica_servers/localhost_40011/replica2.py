@@ -3,19 +3,23 @@
 import socket                   # Import socket module
 import pickle
 import os
+import threading
 
-s = socket.socket()             # Create a socket object
-host = socket.gethostname()     # Get local machine name
-port = 40011
-s.bind(('', port))            # Bind to the port
-s.listen(5)                 # Reserve a port for your service.
-print ('Replica 1 listening on port %d' %(port))
+load = 0
+
+REPLICA_ID = 1
+OS_PORT = 40011
+LB_PORT = 30011
+C_PORT = 50011
 
 
-def receiveFile (s):
+def receiveFile (s, addr):
+  host = addr[0]
   s.send ('1')
   file_size = s.recv(1024)
   (filename, size) = file_size.split ('||||')
+  size = int(size)
+  print ("File size =", size)
   s.send ('11')
   full_path = os.path.join (host, filename)
   fname = full_path.split('/')[-1]
@@ -24,31 +28,83 @@ def receiveFile (s):
 
   with open(full_path, 'wb') as f:
     print ('file opened')
-    chunks = int(size) / 1024
-    last_size = int(size) - chunks * 1024
-    for i in range (chunks):
-      # print('receiving data...')
-      data = s.recv(1024)
-      # print('data=%s', (data))
-      if not data:
-          break
-      # write data to a file
-      f.write(data)
-
-    data = s.recv (last_size)
-    f.write (data)
-    f.close()
-
+    chunks = size / 1024
+    last_size = size - chunks * 1024
+    print ('(chunks, last_size) -> (%d, %d)' %(chunks, last_size))
+    received = 0
+    while received < size:
+      data = s.recv (size - received)
+      f.write (data)
+      received += len (data)
+  print ('file closed:', full_path)
   s.send ('111')
 
-while True:
-  conn, addr = s.accept()
-  print ('Connected to origin')
+def health ():
+  s = socket.socket()             # Create a socket object
+  host = socket.gethostname()     # Get local machine name
+  port = LB_PORT
+  s.bind(('', port))            # Bind to the port
+  s.listen(1)                 # Reserve a port for your service.
+  print ('Replica %d listening on port %d for LB' %(REPLICA_ID, port))
   while True:
-    if (conn.recv(1024) == '000'):
-      receiveFile (conn)
+    conn, addr = s.accept ()
+    if (conn.recv (1024) == "What is your health?"):
+      # Send load to LB
+      conn.send (load)
+    else:
+      conn.close()
 
-s.close()
-print('connection closed')
+def receiveFromOrigin ():
+  s = socket.socket()             # Create a socket object
+  host = socket.gethostname()     # Get local machine name
+  port = OS_PORT
+  s.bind(('', port))            # Bind to the port
+  s.listen(5)                 # Reserve a port for your service.
+  print ('Replica %d listening on port %d for origin server' %(REPLICA_ID, port))
+
+  while True:
+    conn, addr = s.accept()
+    host = addr[0]
+    print ('Connected to origin')
+    while True:
+      res = conn.recv (1024)
+      # print ('res from origin =', res)
+      if (res == '000'):
+        receiveFile (conn, addr)
+      elif (res == '###'):
+        conn.close()
+        break
+
+  s.close()
+  print('connection closed')
+
+def serveClient ():
+  s = socket.socket()             # Create a socket object
+  host = socket.gethostname()     # Get local machine name
+  port = C_PORT
+  s.bind(('', port))            # Bind to the port
+  s.listen(5)                 # Reserve a port for your service.
+  print ('Replica %d listening on port %d for client' %(REPLICA_ID, port))
+
+  # Serve client
+
+def main():
+  lbThread = threading.Thread (target=health)
+  osThread = threading.Thread (target=receiveFromOrigin)
+  cliThread = threading.Thread (target=serveClient)
+
+  lbThread.start()
+  osThread.start()
+  cliThread.start()
+
+  lbThread.join()
+  osThread.join()
+  cliThread.join()
+
+  print ("This will never get printed...")
+
+if __name__ == "__main__":
+  main ()
+
 
 
