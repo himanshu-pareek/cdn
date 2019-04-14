@@ -6,9 +6,9 @@ import os
 
 s = socket.socket()             # Create a socket object
 host = socket.gethostbyname("10.5.31.207")     # Get local machine name
-port = 60009                 # Reserve a port for your service.
+port = 60011                 # Reserve a port for your service.
 
-s.connect((host, port))
+s.connect(('localhost', port))
 
 def receiveFile (s):
   s.send ('1')
