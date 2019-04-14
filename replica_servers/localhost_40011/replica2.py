@@ -4,7 +4,9 @@ import socket                   # Import socket module
 import pickle
 import os
 import threading
+import time 
 
+lock = threading.Lock()
 load = 0
 
 REPLICA_ID = 1
@@ -50,8 +52,9 @@ def health ():
     conn, addr = s.accept ()
     if (conn.recv (1024) == "What is your health?"):
       # Send load to LB
+      lock.acquire()
       conn.send (load)
-    else:
+      lock.release()
       conn.close()
 
 def receiveFromOrigin ():
@@ -85,8 +88,11 @@ def serveClient ():
   s.bind(('', port))            # Bind to the port
   s.listen(5)                 # Reserve a port for your service.
   print ('Replica %d listening on port %d for client' %(REPLICA_ID, port))
-
   # Serve client
+  while(True):
+    conn, addr = s.accept()
+    conn.send("Welcome to the world of CDN")
+    
 
 def main():
   lbThread = threading.Thread (target=health)

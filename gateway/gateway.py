@@ -3,11 +3,13 @@ import pickle
 import os
 import json
 import threading
+import time 
 
 
 PORT_ORIGIN = 10009
 PORT_LBC = 20009
-PORT_LBH = 30009
+
+
 
 lock = threading.lock()
 
@@ -17,6 +19,13 @@ data = json.load(f)
 lis = data['replica_ips']
 for replica in lis:
 	load_dict[replica] = 0
+
+
+h_dict = {}
+f = open('replica_ips.json', 'r')
+data = json.load(f)
+h_lis = data['replica_ips_h']
+
 
 port_gateway = 50009                   # Reserve a port for your service.
 s = socket.socket()             # Create a socket object
@@ -49,6 +58,8 @@ def serveClient ():
 	print('Load balancer listening on port %d for client request'%(PORT_LBC))
 	while(True):
 		conn, addr = s.accept()
+		strng = s.recv(1024)
+		if(strng = "Allot me a replica")
 		min_key = ""
 		min_load = None
 		for key, value in enumerate(load_dict):
@@ -60,8 +71,31 @@ def serveClient ():
 		lock.release()
 		conn.close()
 		
+def getRepHealth(ip_port):
+	ip = ip_port.split('_')[0]
+	port = int(ip_port.split('_')[1])
+	s = socket.socket()
+	while(True):
+		s.connect((ip, port))
+		s.send("What is your health?")
+		health = int(s.recv(1024))
+		key = ip + "_5" + str(port)[1:]
+		lock.acquire()
+		load_dict[key] = health
+		lock.release()
+		time.sleep(30)
+		s.close()
 
 
+
+def getHealth():
+	threadLis = []
+	for value in h_lis:
+		replicaThread = threading.Thread (target = getRepHealth, args= (value))
+		threadLis.append(replicaThread)
+
+	for i in threadLis:
+		i.join()
 
 def loadBalancer ():
 	clientThread = threading.Thread (target = serveClient)
