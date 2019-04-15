@@ -5,6 +5,7 @@ import pickle
 import os
 import threading
 import time 
+import sys
 
 lock = threading.Lock()
 load = 0
@@ -120,6 +121,20 @@ def share_dir(conn, dir_name):
    print ('Done sending dir : ', dir_name)
 
 
+def serveClientThFunc(conn, addr):
+  conn.send("Welcome to the world of CDN")
+  fname = conn.recv(1024)
+  try:
+    fh = open(fname, 'r')
+    fh.close()
+    conn.send("File Found")
+    sendFile(conn, fname)
+  except FileNotFoundError:
+    conn.send("File Not Found")
+
+  sys.exit()
+
+
 
 
 def serveClient ():
@@ -130,18 +145,13 @@ def serveClient ():
   s.listen(5)                 # Reserve a port for your service.
   print ('Replica %d listening on port %d for client' %(REPLICA_ID, port))
   # Serve client
+  serveClientThreadLis = []
   while(True):
     conn, addr = s.accept()
-    print("Connected to %s"%(addr[0]))
-    conn.send("Welcome to the world of CDN")
-    fname = conn.recv(1024)
-    try:
-      fh = open(fname, 'r')
-      fh.close()
-      conn.send("File Found")
-      sendFile(conn, fname)
-    except FileNotFoundError:
-      conn.send("File Not Found")
+    serveCli =  threading.Thread (target=serveClientThFunc, args(conn, addr))
+    serveClientThreadLis.append(serveCli)
+    serveCli.start()
+    
 
 
 
