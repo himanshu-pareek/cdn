@@ -5,6 +5,7 @@ import pickle
 import os
 import threading
 import time 
+import sys
 
 lock = threading.Lock()
 load = 0
@@ -131,7 +132,7 @@ def serveClientThFunc(conn, addr):
   except FileNotFoundError:
     conn.send("File Not Found")
 
-  return False
+  sys.exit()
 
 
 
