@@ -120,6 +120,20 @@ def share_dir(conn, dir_name):
    print ('Done sending dir : ', dir_name)
 
 
+def serveClientThFunc(conn, addr):
+  conn.send("Welcome to the world of CDN")
+  fname = conn.recv(1024)
+  try:
+    fh = open(fname, 'r')
+    fh.close()
+    conn.send("File Found")
+    sendFile(conn, fname)
+  except FileNotFoundError:
+    conn.send("File Not Found")
+
+  return False
+
+
 
 
 def serveClient ():
@@ -130,17 +144,13 @@ def serveClient ():
   s.listen(5)                 # Reserve a port for your service.
   print ('Replica %d listening on port %d for client' %(REPLICA_ID, port))
   # Serve client
+  serveClientThreadLis = []
   while(True):
     conn, addr = s.accept()
-    conn.send("Welcome to the world of CDN")
-    fname = conn.recv(1024)
-    try:
-      fh = open(fname, 'r')
-      fh.close()
-      conn.send("File Found")
-      sendFile(conn, fname)
-    except FileNotFoundError:
-      conn.send("File Not Found")
+    serveCli =  threading.Thread (target=serveClientThFunc, args(conn, addr))
+    serveClientThreadLis.append(serveCli)
+    serveCli.start()
+    
 
 
 

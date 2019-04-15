@@ -6,13 +6,15 @@ import time
 
 def receiveFile (s, addr):
   host = addr[0]
+  if(s.recv(1024) != "000"):
+  	return
   s.send ('1')
   file_size = s.recv(1024)
   (filename, size) = file_size.split ('||||')
   size = int(size)
   print ("File size =", size)
   s.send ('11')
-  full_path = os.path.join (host, filename)
+  full_path = os.path.join (filename)
   fname = full_path.split('/')[-1]
   dir_path = '/'.join(full_path.split('/')[:-1])
   os.system("mkdir -p " + dir_path)
@@ -61,9 +63,9 @@ print (replica_ip, replica_port)
 s = socket.socket()
 s.connect((replica_ip, replica_port))
 strng = s.recv(1024)
-print("Message from the replica server : "strng)
+print("Message from the replica server : ", strng)
 if(strng == "Welcome to the world of CDN"):
-	s.send("10.145.133.187/a")
+	s.send("10.145.133.187/a/b/get-pip.py")
 	if(s.recv(1024) == "File Found"):
 		receiveFile (s, replica_ip)
 	else:
