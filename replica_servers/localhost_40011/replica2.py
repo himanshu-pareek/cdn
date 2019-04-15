@@ -53,7 +53,7 @@ def health ():
     if (conn.recv (1024) == "What is your health?"):
       # Send load to LB
       lock.acquire()
-      conn.send (load)
+      conn.send (str(load))
       lock.release()
       conn.close()
 
