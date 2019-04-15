@@ -8,7 +8,6 @@ import time
 import sys
 
 lock = threading.Lock()
-load = 0
 
 REPLICA_ID = 0
 OS_PORT = 40010
@@ -122,6 +121,10 @@ def share_dir(conn, dir_name):
 
 
 def serveClientThFunc(conn, addr):
+  global load
+  lock.acquire()
+  load += 1
+  lock.release()
   conn.send("Welcome to the world of CDN")
   fname = conn.recv(1024)
   try:
@@ -148,15 +151,16 @@ def serveClient ():
   serveClientThreadLis = []
   while(True):
     conn, addr = s.accept()
-
-    serveCli =  threading.Thread (target=serveClientThFunc, args(conn, addr))
+    serveCli =  threading.Thread (target=serveClientThFunc, args = (conn, addr))
     serveClientThreadLis.append(serveCli)
     serveCli.start()
-
+    
 
 
 
 def main():
+  global load
+  load = 0
   lbThread = threading.Thread (target=health)
   osThread = threading.Thread (target=receiveFromOrigin)
   cliThread = threading.Thread (target=serveClient)
