@@ -11,7 +11,7 @@ PORT_LBC = 20009
 
 
 
-lock = threading.lock()
+lock = threading.Lock()
 
 load_dict = {}
 f = open('replica_ips.json', 'r')
@@ -59,16 +59,16 @@ def serveClient ():
 	while(True):
 		conn, addr = s.accept()
 		strng = s.recv(1024)
-		if(strng = "Allot me a replica")
-		min_key = ""
-		min_load = None
-		for key, value in enumerate(load_dict):
-			if(min_load is None or min_load > int(value)):
-				min_load = int(value)
-				min_key = key
-		lock.acquire()
-		conn.send(min_key)
-		lock.release()
+		if(strng == "Allot me a replica"):
+			min_key = ""
+			min_load = None
+			for key, value in enumerate(load_dict):
+				if(min_load is None or min_load > int(value)):
+					min_load = int(value)
+					min_key = key
+			lock.acquire()
+			conn.send(min_key)
+			lock.release()
 		conn.close()
 		
 def getRepHealth(ip_port):
@@ -76,9 +76,12 @@ def getRepHealth(ip_port):
 	port = int(ip_port.split('_')[1])
 	s = socket.socket()
 	while(True):
+		print("Trying to connect %s"%(ip_port))
 		s.connect((ip, port))
 		s.send("What is your health?")
-		health = int(s.recv(1024))
+		h = s.recv(1024)
+		print("Health of %s is %s"%(ip_port, h))
+		health = (s.recv(1024))
 		key = ip + "_5" + str(port)[1:]
 		lock.acquire()
 		load_dict[key] = health
@@ -91,8 +94,12 @@ def getRepHealth(ip_port):
 def getHealth():
 	threadLis = []
 	for value in h_lis:
-		replicaThread = threading.Thread (target = getRepHealth, args= (value))
+		replicaThread = threading.Thread (target = getRepHealth, args= (value,))
 		threadLis.append(replicaThread)
+
+	for i in threadLis:
+		i.start()
+
 
 	for i in threadLis:
 		i.join()
@@ -109,5 +116,19 @@ def loadBalancer ():
 
 
 
+def main():
+  originThread = threading.Thread (target=serveOrigin)
+  LBThread = threading.Thread (target=loadBalancer)
+
+  originThread.start()
+  LBThread.start()
+
+  originThread.join()
+  LBThread.join()
+
+  print ("This will never get printed...")
+
+if __name__ == "__main__":
+  main ()
 # lis = os.listdir("../replica_servers")
 
