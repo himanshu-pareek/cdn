@@ -91,6 +91,7 @@ def serveClient ():
   # Serve client
   while(True):
     conn, addr = s.accept()
+    print("Connected to %s"%(addr[0]))
     conn.send("Welcome to the world of CDN")
     
 
