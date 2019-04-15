@@ -94,7 +94,7 @@ def getRepHealth(ip_port):
 		lock.release()
 		# s.shutdown(socket.SHUT_RDWR)
 		s.close()
-		time.sleep(30)
+		time.sleep(5)
 
 
 
