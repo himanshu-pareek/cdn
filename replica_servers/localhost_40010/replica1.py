@@ -140,7 +140,7 @@ def serveClient ():
       fh.close()
       conn.send("File Found")
       sendFile(conn, fname)
-    except FileNotFoundError:
+    except:
       conn.send("File Not Found")
 
 
