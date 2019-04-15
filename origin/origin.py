@@ -3,12 +3,16 @@ import pickle
 import os
 import threading
 import time 
+import json
+
+port_client = 50010
 
 def listenClient():
   s = socket.socket()             # Create a socket object
   host = socket.gethostname()     # Get local machine name
   port = port_client
-  s.bind(('', port)) 
+  s.bind((host, port)) 
+  s.listen(5)
   print("Listening ..")
   while(True):
    conn, addr = s.accept()

@@ -16,14 +16,16 @@ lock = threading.Lock()
 load_dict = {}
 f = open('replica_ips.json', 'r')
 data = json.load(f)
-lis = data['replica_ips']
+lis = data['replica_ips_h']
 for replica in lis:
-	load_dict[replica] = 0
+	load_dict[replica] = 1
+print("printing dict for first time")
+for key in load_dict:
+	key = key.encode("utf-8")
+	print ('key =', key)
+	print ('load_dict[key] =', load_dict[key])
 
 
-h_dict = {}
-f = open('replica_ips.json', 'r')
-data = json.load(f)
 h_lis = data['replica_ips_h']
 
 
@@ -58,36 +60,41 @@ def serveClient ():
 	print('Load balancer listening on port %d for client request'%(PORT_LBC))
 	while(True):
 		conn, addr = s.accept()
-		strng = s.recv(1024)
+		strng = conn.recv(1024)
 		if(strng == "Allot me a replica"):
 			min_key = ""
 			min_load = None
-			for key, value in enumerate(load_dict):
-				if(min_load is None or min_load > int(value)):
-					min_load = int(value)
-					min_key = key
 			lock.acquire()
-			conn.send(min_key)
+			for key in load_dict:
+				key = key.encode("utf-8")
+				print ('key =', key)
+				print ('load_dict[key] =', load_dict[key])
+				if(min_load is None or min_load > int(load_dict[key])):
+					min_load = int(load_dict[key])
+					min_key = key
+			ip_rep = min_key.split('_')[0]
+			port_rep = '_5'+min_key.split('_')[1][1:]
+			conn.send(ip_rep + port_rep)
 			lock.release()
 		conn.close()
 		
 def getRepHealth(ip_port):
 	ip = ip_port.split('_')[0]
 	port = int(ip_port.split('_')[1])
-	s = socket.socket()
 	while(True):
+		s = socket.socket()
 		print("Trying to connect %s"%(ip_port))
 		s.connect((ip, port))
 		s.send("What is your health?")
-		h = s.recv(1024)
+		h = int(s.recv(1024))
 		print("Health of %s is %s"%(ip_port, h))
-		health = (s.recv(1024))
-		key = ip + "_5" + str(port)[1:]
+		key = ip_port
 		lock.acquire()
-		load_dict[key] = health
+		load_dict[key] = h
 		lock.release()
-		time.sleep(30)
+		# s.shutdown(socket.SHUT_RDWR)
 		s.close()
+		time.sleep(30)
 
 
 

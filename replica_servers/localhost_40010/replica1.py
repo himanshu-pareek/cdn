@@ -81,6 +81,47 @@ def receiveFromOrigin ():
   s.close()
   print('connection closed')
 
+
+def sendFile (conn, filename):
+   print ('Inside sendFile with filename =', filename)
+   conn.send ("000")
+   res = conn.recv (1024)
+   if (res != '1'):
+      print ('Got', res, 'instead of 1')
+      return
+   filesize = os.path.getsize (filename)
+   conn.send (filename + '||||' + str (filesize))
+   if (conn.recv (1024) != '11'):
+      return
+   f = open(filename,'rb')
+
+   l = f.read(1024)
+   while (l):
+      conn.send(l)
+      #  print('Sent ',repr(l))
+      l = f.read(1024)
+   f.close()
+   if (conn.recv (1024) == '111'):
+      print ('Done sending ' + filename)
+   else:
+      print ('Error in sending ' + filename)
+
+def share_dir(conn, dir_name):
+   lis = os.listdir(dir_name)
+   for i in lis:
+      if(os.path.isdir(os.path.join(dir_name, i)) == 1):
+         print ('Directory to share:', os.path.join(dir_name, i))
+         share_dir(conn, os.path.join(dir_name, i))
+      else:
+         print ('File to send: ', os.path.join(dir_name, i))
+         sendFile(conn, os.path.join(dir_name, i))
+   print ('Almost Done sending all dirs')
+   
+   print ('Done sending dir : ', dir_name)
+
+
+
+
 def serveClient ():
   s = socket.socket()             # Create a socket object
   host = socket.gethostname()     # Get local machine name
@@ -92,7 +133,16 @@ def serveClient ():
   while(True):
     conn, addr = s.accept()
     conn.send("Welcome to the world of CDN")
-    
+    fname = conn.recv(1024)
+    try:
+      fh = open(fname, 'r')
+      fh.close()
+      conn.send("File Found")
+      sendFile(conn, fname)
+    except FileNotFoundError:
+      conn.send("File Not Found")
+
+
 
 def main():
   lbThread = threading.Thread (target=health)
