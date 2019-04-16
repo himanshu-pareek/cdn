@@ -6,6 +6,7 @@ import os
 import threading
 import time 
 import sys
+import select
 
 lock = threading.Lock()
 
@@ -126,15 +127,28 @@ def serveClientThFunc(conn, addr):
   load += 1
   lock.release()
   conn.send("Welcome to the world of CDN")
-  fname = conn.recv(1024)
-  try:
-    fh = open(fname, 'r')
-    fh.close()
-    conn.send("File Found")
-    sendFile(conn, fname)
-  except FileNotFoundError:
-    conn.send("File Not Found")
-
+  if(conn.recv(1024) == "Give me this file"):
+    conn.send("Ready")
+    fname = conn.recv(1024)
+    print (fname)
+    try:
+      fh = open(fname, 'r')
+      fh.close()
+      conn.send("File Found")
+      try:
+        sendFile(conn, fname)
+      except:
+        conn.close()
+        lock.acquire()
+        load -= 1
+        lock.release()
+        sys.exit()
+    except:
+      conn.send("File Not Found")
+    conn.close()
+    lock.acquire()
+    load -= 1
+    lock.release()
   sys.exit()
 
 
