@@ -151,6 +151,9 @@ def serveClientThFunc(conn, addr):
     lock.release()
   sys.exit()
 
+
+
+
 def serveClient ():
   s = socket.socket()             # Create a socket object
   host = socket.gethostname()     # Get local machine name
@@ -165,6 +168,9 @@ def serveClient ():
     serveCli =  threading.Thread (target=serveClientThFunc, args = (conn, addr))
     serveClientThreadLis.append(serveCli)
     serveCli.start()
+    
+
+
 
 def main():
   global load

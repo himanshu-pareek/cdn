@@ -16,6 +16,7 @@ def listenClient():
   print("Listening ..")
   while(True):
    conn, addr = s.accept()
+   print("Got a connection from client")
    conn.recv(1024)
    f = open('gateway_LB.json', 'r')
    data = json.load(f)
