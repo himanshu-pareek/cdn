@@ -1,0 +1,17 @@
+{
+	"replica": {
+				"origin": "4001X", "LB": "3001X", "client": "5001X" 
+			   },
+
+	"gateway": {
+			"origin": "10009" 
+		   },
+
+	"LB" : {
+		"client" : "20009"
+	},
+
+	"origin":{
+		"client" : "50010"
+	}
+}
