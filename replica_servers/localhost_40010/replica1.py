@@ -130,6 +130,7 @@ def serveClientThFunc(conn, addr):
   if(conn.recv(1024) == "Give me this file"):
     conn.send("Ready")
     fname = conn.recv(1024)
+    print (fname)
     try:
       fh = open(fname, 'r')
       fh.close()
@@ -142,7 +143,7 @@ def serveClientThFunc(conn, addr):
         load -= 1
         lock.release()
         sys.exit()
-    except FileNotFoundError:
+    except:
       conn.send("File Not Found")
     conn.close()
     lock.acquire()
