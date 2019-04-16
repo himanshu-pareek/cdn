@@ -44,6 +44,9 @@ def sendFile (conn, filename):
       print ('Error in sending ' + filename)
 
 def share_dir(conn, dir_name):
+   if(os.path.isdir(os.path.join(dir_name, i)) != 1):
+      sendFile(conn, dir_name)
+      return 
    lis = os.listdir(dir_name)
    for i in lis:
       if(os.path.isdir(os.path.join(dir_name, i)) == 1):
@@ -64,5 +67,6 @@ for i in lis:
    s.connect((host, int(replica_port)))
    share_dir(s, 'a')
    s.send('###')
-   s.close()          
+   s.close()
+   break          
 
