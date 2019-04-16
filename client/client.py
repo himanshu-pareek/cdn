@@ -86,19 +86,20 @@ def connectReplica(replica, fname):
 
 
 def main():
-	threshold = 30
+	threshold = 5
 	LB = connectOrigin()
 	replica  = connectLB(LB)
-	st  = time.now()
-	while(true):
-		fname = input("Enter filename to fetch")
+	st  = time.time()
+	while(True):
+		fname = raw_input("Enter filename to fetch\n")
+		print(fname)
 		connectReplica(replica, fname)
-		if((time.now() - st) > threshold):
+		if((time.time() - st) > threshold):
 			main()
 
 
 
 
 
-if __name__ = "__main__":
+if __name__ == "__main__":
 	main()
