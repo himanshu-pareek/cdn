@@ -1,10 +1,10 @@
 {
 	"replica": {
-				"origin": "4001X", "LB": "3001X", "client": "5001X" 
+				"origin": "4001X", "LB": "3001X", "client": "5001X", "waking_up_rep" :"2001X"
 			   },
 
 	"gateway": {
-			"origin": "10009" 
+			"origin": "10009" , "replica" : "20010"
 		   },
 
 	"LB" : {
