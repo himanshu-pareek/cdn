@@ -7,6 +7,11 @@ import threading
 import time 
 import sys
 import select
+import argparse
+
+ap = argparse.ArgumentParser()
+ap.add_argument("-m", type=str, help="mode of operation")
+args = vars(ap.parse_args())
 
 lock = threading.Lock()
 
@@ -14,7 +19,7 @@ REPLICA_ID = 2
 OS_PORT = 40012
 LB_PORT = 30012
 C_PORT = 50012
-
+PORT_R = 20012
 
 def receiveFile (s, addr):
   host = addr[0]
@@ -82,6 +87,22 @@ def receiveFromOrigin ():
   s.close()
   print('connection closed')
 
+def share_dir(conn, dir_name):
+   if(os.path.isdir(os.path.join(dir_name, i)) != 1):
+      sendFile(conn, dir_name)
+      return 
+   lis = os.listdir(dir_name)
+   for i in lis:
+      if(os.path.isdir(os.path.join(dir_name, i)) == 1):
+         print ('Directory to share:', os.path.join(dir_name, i))
+         share_dir(conn, os.path.join(dir_name, i))
+      else:
+         print ('File to send: ', os.path.join(dir_name, i))
+         sendFile(conn, os.path.join(dir_name, i))
+   print ('Almost Done sending all dirs')
+   
+   print ('Done sending dir : ', dir_name)
+
 
 def sendFile (conn, filename):
    print ('Inside sendFile with filename =', filename)
@@ -120,7 +141,6 @@ def share_dir(conn, dir_name):
    
    print ('Done sending dir : ', dir_name)
 
-
 def serveClientThFunc(conn, addr):
   global load
   lock.acquire()
@@ -151,9 +171,6 @@ def serveClientThFunc(conn, addr):
     lock.release()
   sys.exit()
 
-
-
-
 def serveClient ():
   s = socket.socket()             # Create a socket object
   host = socket.gethostname()     # Get local machine name
@@ -169,28 +186,91 @@ def serveClient ():
     serveClientThreadLis.append(serveCli)
     serveCli.start()
     
+def serveReplica():
+  s = socket.socket()             # Create a socket object
+  host = socket.gethostname()     # Get local machine name
+  s.bind((host, PORT_R))            # Bind to the port
+  s.listen(5)                     # Now wait for client connection.
+  print('Replica listening on port %d for replicas that just recovered'%(PORT_R))
+  while(True):
+    conn, addr = s.accept()
+    if(conn.recv(1024) == "Data Please !!"):
+      dirlist = os.listdir('.')
+      for dirname in dirlist:
+        if (os.path.isdir (dirname)):
+          # dirname is a dir
+          # we want to share it
+          share_dir (conn, dirname)
+      conn.send("&&&")
+    conn.close()
+
+def wakingUp():
+  f = open('gateway_ip.json', 'r')
+  data = json.load(f)
+  f.close()
+  gateway_ip_port  = data["gateway"]
+  (gateway_ip, gateway_port) = gateway_ip_port.split('_')
+  s = socket.socket()
+  s.connect((gateway_ip, gateway_port))
+  s.send("Just Woke up Need data")
+  ip_port = s.recv(1024)
+  replica_ip = ip_port.split('_')[0] 
+  replica_port = int(ip_port.split('_')[1])
+  s.close()
+  s = socket.socket()
+  s.connect((replica_ip, replica_port))
+  s.send("Data Please !!")
+  while(True):
+    received = s.recv(1024)
+    if(received == '000'):
+      receiveFile (s, "")
+    elif(received == "&&&"):
+      s.close()
+      break
+
+  s = socket.socket()
+  s.connect((gateway_ip, gateway_port))
+  s.send("Recovered Now add me to yr replica list")
+  if(s.recv(1024) == "Ready to add Tell me yr replica id"):
+    s.send(str(LB_PORT))
+    if(s.recv(1024) == "Sucessfully added"):
+      main("n")
 
 
 
-def main():
+def main(mode):
   global load
   load = 0
-  lbThread = threading.Thread (target=health)
-  osThread = threading.Thread (target=receiveFromOrigin)
-  cliThread = threading.Thread (target=serveClient)
 
-  lbThread.start()
-  osThread.start()
-  cliThread.start()
+  if(mode == "n"):
 
-  lbThread.join()
-  osThread.join()
-  cliThread.join()
+    lbThread = threading.Thread (target=health)
+    osThread = threading.Thread (target=receiveFromOrigin)
+    cliThread = threading.Thread (target=serveClient)
+    repThread = threading.Thread (target = serveReplica)
 
-  print ("This will never get printed...")
+    lbThread.start()
+    osThread.start()
+    cliThread.start()
+    repThread.start()
+
+    lbThread.join()
+    osThread.join()
+    cliThread.join()
+    repThread.join()
+
+    print ("This will never get printed...")
+  
+  else :
+    wakingUp()
+
+  
+
+  
 
 if __name__ == "__main__":
-  main ()
+  mode = args["m"]
+  main(mode)
 
 
 
