@@ -4,12 +4,17 @@ import os
 import threading
 import time 
 
+
+f = open('gateway_LB.json', 'r')
+data = json.load(f)
+f.close()
+gateway_ip = data["gateway_ip"]
+
 s = socket.socket()             # Create a socket object
-host = socket.gethostname()     # Get local machine name
 port_gateway = 50009 
 port_client = 50010                # Reserve a port for your service.
 
-s.connect((host, port_gateway))
+s.connect((gateway_ip, port_gateway))
 
 print("Connected")
 s.send("alive")
