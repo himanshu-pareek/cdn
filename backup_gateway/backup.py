@@ -236,6 +236,15 @@ def handleRepWakeUp():
 			print (key, new_key)
 			newreplicaThread = threading.Thread (target = getRepHealth, args= (key,))
 			newreplicaThread.start()
+		elif (rec == "Send replica list"):
+			f = open ('replica_ips.json', 'r')
+			data = json.load (f)
+			f.close()
+			data = data['replica_ips']
+			to_send = json.dumps ({"replica_ips": data})
+			conn.send (to_send)
+			conn.close()
+
 	p.close()
 
 
@@ -352,24 +361,6 @@ def pingReplicaFunc(ip_port):
 		if(s.recv(1024) == 'done'):
 			s.close()
 			# sys.exit()
-
-def pingReplicaFunc(ip_port):
-
-	f = open ('back_info.json', 'r')
-	data = json.load (f)
-	f.close()
-	ip_to_send = data['ip_self']
-	ip_port = ip_port.replace('_4', '_3')
-	s = socket.socket()
-	ip = ip_port.split('_')[0]
-	port = int(ip_port.split('_')[1])
-	print('Pinging Replica for the new Gateway server')
-	s.connect((ip, port))
-	s.send("I am the new gateway")
-	if(s.recv(1024) == "received"):
-		s.send(ip_to_send)
-		if(s.recv(1024) == 'done')
-		sys.exit()
 
 
 def backup ():

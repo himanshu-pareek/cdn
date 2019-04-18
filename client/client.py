@@ -91,6 +91,7 @@ def main():
 	replica = None
 	while True:
 		fname = raw_input("Enter filename to fetch")
+		
 		if url_cache_time is None or time.time() - url_cache_time > url_ttl:
 			LB = connectOrigin(origin_ip)
 			replica  = connectLB(LB)

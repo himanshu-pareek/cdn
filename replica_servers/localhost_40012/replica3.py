@@ -171,6 +171,45 @@ def sendFile (conn, filename):
    
 #    print ('Done sending dir : ', dir_name)
 
+def replicate (ip_port, fname):
+  print ('Replica ip_port = %s' %(ip_port))
+  (ip, port) = ip_port.split('_')
+  ip = ip.encode ("utf-8")
+  port = int (port.encode ("utf-8"))
+  s = socket.socket()
+  s.connect ((ip, port))
+  s.send ("Get updated data")
+  res = s.recv (1024)
+  if res == 'Ready':
+    sendFile (s, fname)
+  s.close()
+
+def replicateData (fname):
+  # Get replica list from Gateway
+  with open ('gateway_ip.json', 'r') as f:
+    gateway = json.load (f)
+  (gateway_ip, gateway_port) = gateway_ip_port.split('_')
+  gateway_ip = gateway_ip.encode ("utf-8")
+  gateway_port = int(gateway_port.encode ("utf-8"))
+  s = socket.socket()
+  print ("Gateway IP: %s and Gateway Port: %d" %(gateway_ip, gateway_port))
+  s.connect((gateway_ip, gateway_port))
+  s.send("Send replica list")
+  replica_list = s.recv (1024)
+  s.send ('done')
+  s.close()
+  replica_list = json.dumps (replica_list)['replica_ips']
+  replica_list = [i if i[-1] != str(REPLICA_ID) for i in replica_list]
+  threadlist = []
+  for i in replica_list:
+    threadlist.append (threading.Thread (target=replicate, args=(i,fname,)))
+  for i in threadlist:
+    i.start()
+  for i in threadlist:
+    i.join()
+
+  # Send file fname to all replicas
+
 def serveClientThFunc(conn, addr):
   global load
   lock.acquire()
@@ -194,7 +233,7 @@ def serveClientThFunc(conn, addr):
         lock.release()
         sys.exit()
     except:
-      # Send message to gateway to get file
+      # Send message to origin to get file
       try:
         name_array = fname.split ('/')
         origin_ip = name_array[0]
@@ -207,12 +246,15 @@ def serveClientThFunc(conn, addr):
           status = origin_socket.recv (1024)
           if status == '000':
             receiveFile (origin_socket, [origin_ip, PORT_ORIGIN])
-          else:
-            conn.send ('File not found')
+            conn.send("File Found")
+            try:
+              sendFile(conn, fname)
+            except:
+              conn.send("File Not Found")
+            replicateData (fname)
           origin_socket.close()
       except:
         conn.send("File Not Found")
-      
     conn.close()
     lock.acquire()
     load -= 1
@@ -244,7 +286,8 @@ def serveReplica():
   print('Replica listening on port %d for replicas that just recovered'%(PORT_R))
   while(True):
     conn, addr = s.accept()
-    if(conn.recv(1024) == "Data Please !!"):
+    res = conn.recv (1024)
+    if(res == "Data Please !!"):
       dirlist = os.listdir('.')
       for dirname in dirlist:
         if (os.path.isdir (dirname)):
@@ -252,6 +295,10 @@ def serveReplica():
           # we want to share it
           share_dir (conn, dirname)
       conn.send("&&&")
+    elif res == "Get updated data":
+      conn.send ('Ready')
+      if (conn.recv(1024) == '000'):
+        receiveFile (conn, ["", ""])
     conn.close()
 
 def wakingUp():
