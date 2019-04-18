@@ -7,13 +7,41 @@ import json
 
 port_client = 50010
 PORT_ORGIN_BACKUP = 50110
+PORT_LISTEN_REPLICA = 45010
+
+
+
+def sendFile (conn, filename):
+   print ('Inside sendFile with filename =', filename)
+   conn.send ("000")
+   res = conn.recv (1024)
+   if (res != '1'):
+      print ('Got', res, 'instead of 1')
+      return
+   filesize = os.path.getsize (filename)
+   conn.send (filename + '||||' + str (filesize))
+   if (conn.recv (1024) != '11'):
+      return
+   f = open(filename,'rb')
+
+   l = f.read(1024)
+   while (l):
+      conn.send(l)
+      #  print('Sent ',repr(l))
+      l = f.read(1024)
+   f.close()
+   if (conn.recv (1024) == '111'):
+      print ('Done sending ' + filename)
+   else:
+      print ('Error in sending ' + filename)
+
 
 def listenClient():
   s = socket.socket()             # Create a socket object
+  s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
   host = socket.gethostname()     # Get local machine name
   port = port_client
   s.bind(('', port)) 
-  s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
   s.listen(5)
   print("Listening ..")
   while(True):
@@ -27,15 +55,33 @@ def listenClient():
    conn.close()
 
 def listenReplica():
-  print("listening for replica for pull requests")
+  s = socket.socket()             # Create a socket object
+  s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+  host = socket.gethostname()     # Get local machine name
+  port = PORT_LISTEN_REPLICA
+  s.bind(('', port)) 
+  s.listen(5)
+  print("Listening ..")
+  while(True):
+    conn, addr = s.accept()
+    if(conn.recv(1024) == "Send me updated file"):
+      conn.send("Give me file name")
+      fname = conn.recv(1024)
+      try :
+        f = open(fname, 'r')
+        f.close()
+        sendFile(conn, fname)
+      except:
+        conn.send("File Not Found")
+
 
 
 def backupGateway():
   s = socket.socket()             # Create a socket object
+  s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
   host = socket.gethostname()     # Get local machine name
   port = PORT_ORGIN_BACKUP
   s.bind(('', port)) 
-  s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
   s.listen(5)
   print("Listening ..")
   while(True):

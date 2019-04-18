@@ -13,6 +13,7 @@
 
 	"origin":{
 		"client" : "50010",
-		"backup_gateway" : "50110"
+		"backup_gateway" : "50110",
+		"replica" : "45010"
 	}
 }
