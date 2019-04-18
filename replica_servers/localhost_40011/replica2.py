@@ -68,11 +68,26 @@ def health ():
   print ('Replica %d listening on port %d for LB' %(REPLICA_ID, port))
   while True:
     conn, addr = s.accept ()
-    if (conn.recv (1024) == "What is your health?"):
+    msg = conn.recv (1024)
+    if (msg == "What is your health?"):
       # Send load to LB
       lock.acquire()
       conn.send (str(load))
       lock.release()
+      conn.close()
+    elif (msg == "I am the new gateway"):
+      conn.send ("received")
+      new_ip_gateway = conn.recv (1024)
+      conn.send ('done')
+      with open ('config.json', 'r') as f:
+        if json.load (f)['ip_self'] == new_ip_gateway
+        new_ip_gateway = 'localhost'
+      f = open ('gateway_ip.json', 'r')
+      data_to_read = {
+        'gateway': new_ip_gateway
+      }
+      with open ('gateway_ip.json', 'w') as f:
+        json.dump (data_to_read, f)
       conn.close()
 
 def receiveFromOrigin ():
