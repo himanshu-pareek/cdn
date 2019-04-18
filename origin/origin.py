@@ -40,6 +40,7 @@ def backupGateway():
   print("Listening ..")
   while(True):
     conn, addr = s.accept()
+    print("Got a connection from backup")
     if(conn.recv(1024) == "I am the new gateway cum load balancer"):
       conn.send("Sure")
       ip = conn.recv(1024)
