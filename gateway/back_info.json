@@ -1,5 +1,5 @@
 {
-	"ip": "localhost",
+	"ip": "192.168.31.42",
 	"port": 20010,
 	"ip_self" : "localhost"
 }
