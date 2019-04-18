@@ -4,6 +4,8 @@ import os
 import threading
 import time 
 
+ORIGIN_PORT = 50010
+
 def receiveFile (s, addr):
   host = addr[0]
   if(s.recv(1024) != "000"):
@@ -33,14 +35,14 @@ def receiveFile (s, addr):
   s.send ('111')
 
 
-def connectOrigin():
+def connectOrigin(host):
 	s = socket.socket()
-	host = "localhost"
+	# host = "localhost"
 	# host = socket.gethostbyname("127.0.0.1")
-	port = 50010
+	
 	if host == "localhost" or host == "127.0.0.1":
 		host = socket.gethostname()
-	s.connect((host, port))
+	s.connect((host, ORIGIN_PORT))
 	s.send("a/get-pip.py")
 	LB = s.recv(1024)
 	s.close()
@@ -83,22 +85,17 @@ def connectReplica(replica, fname):
 		s.close()
 	
 	
-
-
 def main():
-	threshold = 30
-	LB = connectOrigin()
-	replica  = connectLB(LB)
-	st  = time.now()
-	while(true):
-		fname = input("Enter filename to fetch")
+	url_ttl = 30
+	url_cache_time = None
+	replica = None
+	while True:
+		fname = raw_input("Enter filename to fetch")
+		if url_cache_time is None or time.time() - url_cache_time > url_ttl:
+			LB = connectOrigin(origin_ip)
+			replica  = connectLB(LB)
+			url_cache_time = time.time()
 		connectReplica(replica, fname)
-		if((time.now() - st) > threshold):
-			main()
-
-
-
-
 
 if __name__ == "__main__":
 	main()
