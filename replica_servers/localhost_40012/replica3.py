@@ -76,12 +76,13 @@ def health ():
       lock.release()
       conn.close()
     elif (msg == "I am the new gateway"):
+      print("Got info about new gateway")
       conn.send ("received")
       new_ip_gateway = conn.recv (1024)
       conn.send ('done')
       with open ('config.json', 'r') as f:
-        if json.load (f)['ip_self'] == new_ip_gateway
-        new_ip_gateway = 'localhost'
+        if json.load (f)['ip_self'] == new_ip_gateway:
+          new_ip_gateway = 'localhost'
       f = open ('gateway_ip.json', 'r')
       data_to_read = {
         'gateway': new_ip_gateway

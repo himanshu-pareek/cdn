@@ -15,28 +15,31 @@ args = vars(ap.parse_args())
 PORT_ORIGIN = 10009
 PORT_LBC = 20009
 PORT_R = 40110
-PORT_BACKUP = 20010
-PORT_ORGIN_BACKUP = 50010
+PORT_BACKUP = 10110
+PORT_ORGIN_BACKUP = 50110
 
 
 lock = threading.Lock()
 lock2 = threading.Lock()
 
-load_dict = {}
-f = open('replica_ips.json', 'r')
-data = json.load(f)
-f.close()
-lis = data['replica_ips_h']
-for replica in lis:
-	load_dict[replica] = 1
-print("printing dict for first time")
-for key in load_dict:
-	key = key.encode("utf-8")
-	print ('key =', key)
-	print ('load_dict[key] =', load_dict[key])
+try:
+	load_dict = {}
+	f = open('replica_ips.json', 'r')
+	data = json.load(f)
+	f.close()
+	lis = data['replica_ips_h']
+	for replica in lis:
+		load_dict[replica] = 1
+	print("printing dict for first time")
+	for key in load_dict:
+		key = key.encode("utf-8")
+		print ('key =', key)
+		print ('load_dict[key] =', load_dict[key])
 
 
-h_lis = data['replica_ips_h']
+	h_lis = data['replica_ips_h']
+except:
+	pass
 
 def serveOrigin():
 	s = socket.socket()             # Create a socket object
@@ -262,15 +265,15 @@ def handleBackup():
 
 def loadBalancer ():
 	clientThread = threading.Thread (target = serveClient)
-	#healthThread = threading.Thread (target = getHealth)
+	healthThread = threading.Thread (target = getHealth)
 	walkingUpRepThread = threading.Thread (target = handleRepWakeUp)
 
 	clientThread.start()
-	#healthThread.start()
+	healthThread.start()
 	walkingUpRepThread.start()
 
 	clientThread.join()
-	#healthThread.join()	
+	healthThread.join()	
 	walkingUpRepThread.join()
 
 
@@ -328,7 +331,27 @@ def pingOriginFunc(ip):
 		s.send(data['ip_self'])
 		if(s.recv(1024) == "Updated the Gateway"):
 			print("Sucessfully updated the gateway ip in the origin")
-			sys.exit()
+			s.close()
+			# sys.exit()
+
+def pingReplicaFunc(ip_port):
+
+	f = open ('back_info.json', 'r')
+	data = json.load (f)
+	f.close()
+	ip_to_send = data['ip_self']
+	ip_port = ip_port.replace('_4', '_3')
+	s = socket.socket()
+	ip = ip_port.split('_')[0]
+	port = int(ip_port.split('_')[1])
+	print('Pinging Replica for the new Gateway server')
+	s.connect((ip, port))
+	s.send("I am the new gateway")
+	if(s.recv(1024) == "received"):
+		s.send(ip_to_send)
+		if(s.recv(1024) == 'done'):
+			s.close()
+			# sys.exit()
 
 
 def backup ():
@@ -362,6 +385,7 @@ def backup ():
 				except:
 					# Main server is crashed bro, do something
 					print ('Main server is dead bro')
+					s.close()
 					flag =1
 					break
 		
@@ -376,11 +400,30 @@ def backup ():
 			pingOrigin =  threading.Thread (target=pingOriginFunc, args = (i,))
 			originThreadLis.append(pingOrigin)
 
+		f = open('replica_ips.json', 'r')
+		data = json.load(f)
+		f.close()
+		replica_list = data["replica_ips"]
+		replicaThreadLis = []
+		for i in replica_list:
+			pingReplica =  threading.Thread (target=pingReplicaFunc, args = (i,))
+			replicaThreadLis.append(pingReplica)
+
 		for i in originThreadLis:
 			i.start()
 
+
+		for i in replicaThreadLis:
+			i.start()
+
+
 		for i in originThreadLis:
 			i.join()
+
+		for i in replicaThreadLis:
+			i.join()
+		print("Running as Main Gateway Server")
+		main('n')
 
 
 
