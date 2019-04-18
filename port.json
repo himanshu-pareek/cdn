@@ -4,7 +4,7 @@
 			   },
 
 	"gateway": {
-			"origin": "10009" , "replica" : "20010"
+			"origin": "10009" , "replica" : "40110", "backup_gateway": "20010"
 		   },
 
 	"LB" : {
@@ -12,6 +12,7 @@
 	},
 
 	"origin":{
-		"client" : "50010"
+		"client" : "50010",
+		"backup_gateway" : "50110"
 	}
 }

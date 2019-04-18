@@ -3,13 +3,30 @@ import pickle
 import os
 import threading
 import time 
+import select
 
-def receiveFile (s, addr):
+
+def selector (s, size, fname):
+	# print ('Inside selector')
+	s.setblocking(0)
+	ready = select.select([s], [], [], 2)
+	if ready[0]:
+		# print ('selector is ready')
+		data = s.recv(size)
+		if data:
+			return data
+		# print ('data =',data)
+		# return data
+	print ('Nothing received from socket')
+	substitute_main (fname)
+
+def receiveFile (s, addr, fname):
+
   host = addr[0]
-  if(s.recv(1024) != "000"):
+  if(selector(s, 1024, fname) != "000"):
   	return
   s.send ('1')
-  file_size = s.recv(1024)
+  file_size = selector(s, 1024, fname)
   (filename, size) = file_size.split ('||||')
   size = int(size)
   print ("File size =", size)
@@ -26,7 +43,7 @@ def receiveFile (s, addr):
     print ('(chunks, last_size) -> (%d, %d)' %(chunks, last_size))
     received = 0
     while received < size:
-      data = s.recv (size - received)
+      data = selector (s, size - received, fname)
       f.write (data)
       received += len (data)
   print ('file closed:', full_path)
@@ -76,16 +93,26 @@ def connectReplica(replica, fname):
 			return
 		s.send(fname)
 		if(s.recv(1024) == "File Found"):
-			receiveFile (s, replica_ip)
+			receiveFile (s, replica_ip, fname)
 		else:
 			print("Error 404 File Not Found")
 
 		s.close()
 	
-	
+def substitute_main(fname):
+	threshold = 5
+	LB = connectOrigin()
+	replica  = connectLB(LB)
+	st  = time.time()
+	while(True):
+		# fname = raw_input("Enter filename to fetch\n")
+		print(fname)
+		connectReplica(replica, fname)
+		if((time.time() - st) > threshold):
+			main()
 
 
-def main():
+def main(mode):
 	threshold = 5
 	LB = connectOrigin()
 	replica  = connectLB(LB)
@@ -99,7 +126,8 @@ def main():
 
 
 
+	
 
 
 if __name__ == "__main__":
-	main()
+
