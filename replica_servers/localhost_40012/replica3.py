@@ -8,6 +8,17 @@ import time
 import sys
 import select
 import argparse
+import json
+import fcntl
+import struct
+
+def get_ip_address(ifname):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    return socket.inet_ntoa(fcntl.ioctl(
+        s.fileno(),
+        0x8915,  # SIOCGIFADDR
+        struct.pack('256s', ifname[:15])
+    )[20:24])
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-m", type=str, help="mode of operation")
@@ -49,6 +60,7 @@ def receiveFile (s, addr):
 
 def health ():
   s = socket.socket()             # Create a socket object
+  s.setsockopt (socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
   host = socket.gethostname()     # Get local machine name
   port = LB_PORT
   s.bind(('', port))            # Bind to the port
@@ -65,6 +77,7 @@ def health ():
 
 def receiveFromOrigin ():
   s = socket.socket()             # Create a socket object
+  s.setsockopt (socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
   host = socket.gethostname()     # Get local machine name
   port = OS_PORT
   s.bind(('', port))            # Bind to the port
@@ -88,7 +101,7 @@ def receiveFromOrigin ():
   print('connection closed')
 
 def share_dir(conn, dir_name):
-   if(os.path.isdir(os.path.join(dir_name, i)) != 1):
+   if(os.path.isdir(os.path.join(dir_name)) != 1):
       sendFile(conn, dir_name)
       return 
    lis = os.listdir(dir_name)
@@ -128,18 +141,18 @@ def sendFile (conn, filename):
    else:
       print ('Error in sending ' + filename)
 
-def share_dir(conn, dir_name):
-   lis = os.listdir(dir_name)
-   for i in lis:
-      if(os.path.isdir(os.path.join(dir_name, i)) == 1):
-         print ('Directory to share:', os.path.join(dir_name, i))
-         share_dir(conn, os.path.join(dir_name, i))
-      else:
-         print ('File to send: ', os.path.join(dir_name, i))
-         sendFile(conn, os.path.join(dir_name, i))
-   print ('Almost Done sending all dirs')
+# def share_dir(conn, dir_name):
+#    lis = os.listdir(dir_name)
+#    for i in lis:
+#       if(os.path.isdir(os.path.join(dir_name, i)) == 1):
+#          print ('Directory to share:', os.path.join(dir_name, i))
+#          share_dir(conn, os.path.join(dir_name, i))
+#       else:
+#          print ('File to send: ', os.path.join(dir_name, i))
+#          sendFile(conn, os.path.join(dir_name, i))
+#    print ('Almost Done sending all dirs')
    
-   print ('Done sending dir : ', dir_name)
+#    print ('Done sending dir : ', dir_name)
 
 def serveClientThFunc(conn, addr):
   global load
@@ -173,6 +186,7 @@ def serveClientThFunc(conn, addr):
 
 def serveClient ():
   s = socket.socket()             # Create a socket object
+  s.setsockopt (socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
   host = socket.gethostname()     # Get local machine name
   port = C_PORT
   s.bind(('', port))            # Bind to the port
@@ -188,6 +202,7 @@ def serveClient ():
     
 def serveReplica():
   s = socket.socket()             # Create a socket object
+  s.setsockopt (socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
   host = socket.gethostname()     # Get local machine name
   s.bind((host, PORT_R))            # Bind to the port
   s.listen(5)                     # Now wait for client connection.
@@ -210,7 +225,10 @@ def wakingUp():
   f.close()
   gateway_ip_port  = data["gateway"]
   (gateway_ip, gateway_port) = gateway_ip_port.split('_')
+  gateway_ip = gateway_ip.encode ("utf-8")
+  gateway_port = int(gateway_port.encode ("utf-8"))
   s = socket.socket()
+  print ("Gateway IP: %s and Gateway Port: %d" %(gateway_ip, gateway_port))
   s.connect((gateway_ip, gateway_port))
   s.send("Just Woke up Need data")
   ip_port = s.recv(1024)
@@ -218,16 +236,20 @@ def wakingUp():
   replica_port = int(ip_port.split('_')[1])
   s.close()
   s = socket.socket()
+  replica_ip = socket.gethostname()
+  print ('Replica IP: %s and Replica Port: %d' %(replica_ip, replica_port))
   s.connect((replica_ip, replica_port))
   s.send("Data Please !!")
   while(True):
     received = s.recv(1024)
     if(received == '000'):
-      receiveFile (s, "")
+      receiveFile (s, ["", ""])
     elif(received == "&&&"):
+      print ('Received &&&')
       s.close()
       break
 
+  print ('outside while loop')
   s = socket.socket()
   s.connect((gateway_ip, gateway_port))
   s.send("Recovered Now add me to yr replica list")
