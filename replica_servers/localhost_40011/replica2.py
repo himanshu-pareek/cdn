@@ -31,6 +31,7 @@ OS_PORT = 40011
 LB_PORT = 30011
 C_PORT = 50011
 PORT_R = 20011
+PORT_ORIGIN = 45010
 
 def receiveFile (s, addr):
   host = addr[0]
@@ -193,7 +194,25 @@ def serveClientThFunc(conn, addr):
         lock.release()
         sys.exit()
     except:
-      conn.send("File Not Found")
+      # Send message to gateway to get file
+      try:
+        name_array = fname.split ('/')
+        origin_ip = name_array[0]
+        origin_socket = socket.socket()
+        origin_socket.connect ((origin_ip, PORT_ORIGIN))
+        origin_socket.send ("Send me updated file")
+        res = origin_socket.recv (1024)
+        if res == 'Give me file name':
+          origin_socket.send ('/'.join (name_array[1:]))
+          status = origin_socket.recv (1024)
+          if status == '000':
+            receiveFile (origin_socket, [origin_ip, PORT_ORIGIN])
+          else:
+            conn.send ('File not found')
+          origin_socket.close()
+      except:
+        conn.send("File Not Found")
+      
     conn.close()
     lock.acquire()
     load -= 1
