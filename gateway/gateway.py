@@ -237,12 +237,16 @@ def handleRepWakeUp():
 			newreplicaThread = threading.Thread (target = getRepHealth, args= (key,))
 			newreplicaThread.start()
 		elif (rec == "Send replica list"):
+			print("Sending replica list for replication to %s" %(addr[0]))
 			f = open ('replica_ips.json', 'r')
 			data = json.load (f)
 			f.close()
 			data = data['replica_ips']
 			to_send = json.dumps ({"replica_ips": data})
 			conn.send (to_send)
+			print("Sent replica list for replication")
+			msg = conn.recv(1024)
+			print(msg)
 			conn.close()
 
 	p.close()
