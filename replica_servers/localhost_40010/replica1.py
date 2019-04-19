@@ -172,37 +172,56 @@ def sendFile (conn, filename):
 #    print ('Done sending dir : ', dir_name)
 
 def replicate (ip_port, fname):
+  ip_port = ip_port.replace ('_4', '_2')
   print ('Replica ip_port = %s' %(ip_port))
   (ip, port) = ip_port.split('_')
+  with open ('config.json' , 'r') as f:
+    ip_self = json.load (f)['ip_self']
   ip = ip.encode ("utf-8")
+  if (ip == ip_self):
+    ip = socket.gethostname()
   port = int (port.encode ("utf-8"))
+  print ('Replica ip for replication: %s and port: %d' %(ip, port))
   s = socket.socket()
   s.connect ((ip, port))
+  print ('Connected to replica\nReady to send data')
   s.send ("Get updated data")
   res = s.recv (1024)
+  print ('res: %s', res)
   if res == 'Ready':
     sendFile (s, fname)
   s.close()
 
 def replicateData (fname):
   # Get replica list from Gateway
+  print ('replicateData called')
   with open ('gateway_ip.json', 'r') as f:
     gateway = json.load (f)
-  (gateway_ip, gateway_port) = gateway_ip_port.split('_')
-  gateway_ip = gateway_ip.encode ("utf-8")
-  gateway_port = int(gateway_port.encode ("utf-8"))
+  print ('======================')
+  print (gateway)
+  (gateway_ip, gateway_port) = gateway['gateway'].split('_')
+  print (gateway_ip, gateway_port)
+  # gateway_ip = gateway_ip.encode ("utf-8")
+  # print (gateway_ip)
+  gateway_port = int(gateway_port)
+  print (gateway_port)
   s = socket.socket()
   print ("Gateway IP: %s and Gateway Port: %d" %(gateway_ip, gateway_port))
   s.connect((gateway_ip, gateway_port))
+  print ('************')
   s.send("Send replica list")
   replica_list = s.recv (1024)
+  print ('Replica list:', replica_list)
   s.send ('done')
   s.close()
-  replica_list = json.dumps (replica_list)['replica_ips']
-  replica_list = [i if i[-1] != str(REPLICA_ID) for i in replica_list]
+  replica_list = json.loads (replica_list)['replica_ips']
+  print ('Replica list:', replica_list)
+  replica_list = [i for i in replica_list if i[-1] != str(REPLICA_ID)]
+  print ('Replica list:', replica_list)
   threadlist = []
   for i in replica_list:
-    threadlist.append (threading.Thread (target=replicate, args=(i,fname,)))
+    t = threading.Thread (target=replicate, args=(i,fname,))
+    threadlist.append (t)
   for i in threadlist:
     i.start()
   for i in threadlist:
@@ -251,6 +270,7 @@ def serveClientThFunc(conn, addr):
               sendFile(conn, fname)
             except:
               conn.send("File Not Found")
+            print ('Calling replicateData function')
             replicateData (fname)
           origin_socket.close()
       except:
