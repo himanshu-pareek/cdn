@@ -144,6 +144,10 @@ def addInJson(key, value):
 
 def getRepHealth(ip_port):
 	ip = ip_port.split('_')[0]
+	with open('back_info.json', 'r') as f:
+		ip_self = json.load(f)['ip_self']
+	if(ip == ip_self):
+		ip = socket.gethostname()
 	port = int(ip_port.split('_')[1])
 	key = ip_port
 	while(True):
@@ -237,12 +241,16 @@ def handleRepWakeUp():
 			newreplicaThread = threading.Thread (target = getRepHealth, args= (key,))
 			newreplicaThread.start()
 		elif (rec == "Send replica list"):
+			print("Sending replica list for replication to %s" %(addr[0]))
 			f = open ('replica_ips.json', 'r')
 			data = json.load (f)
 			f.close()
 			data = data['replica_ips']
 			to_send = json.dumps ({"replica_ips": data})
 			conn.send (to_send)
+			print("Sent replica list for replication")
+			msg = conn.recv(1024)
+			print(msg)
 			conn.close()
 
 	p.close()
@@ -331,6 +339,10 @@ def getSnapshot(s):
 
 def pingOriginFunc(ip):
 	s = socket.socket()
+	with open('back_info.json', 'r') as f:
+		ip_self = json.load(f)['ip_self']
+	if(ip == ip_self):
+		ip = socket.gethostname()
 	s.connect((ip, PORT_ORGIN_BACKUP))
 	s.send("I am the new gateway cum load balancer")
 	if(s.recv(1024) == "Sure"):
@@ -354,6 +366,10 @@ def pingReplicaFunc(ip_port):
 	ip = ip_port.split('_')[0]
 	port = int(ip_port.split('_')[1])
 	print('Pinging Replica for the new Gateway server')
+	with open('back_info.json', 'r') as f:
+		ip_self = json.load(f)['ip_self']
+	if(ip == ip_self):
+		ip = socket.gethostname()
 	s.connect((ip, port))
 	s.send("I am the new gateway")
 	if(s.recv(1024) == "received"):
@@ -370,6 +386,10 @@ def backup ():
 	f.close()
 	main_server_ip = data['ip']
 	main_server_port = data['port']
+	with open('back_info.json', 'r') as f:
+		ip_self = json.load(f)['ip_self']
+	if(main_server_ip == ip_self):
+		main_server_ip = socket.gethostname()
 	s.connect ((main_server_ip, main_server_port))
 	print ('Connected to main server')
 	flag = 0

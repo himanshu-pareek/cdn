@@ -207,6 +207,12 @@ def replicateData (fname):
   print (gateway_port)
   s = socket.socket()
   print ("Gateway IP: %s and Gateway Port: %d" %(gateway_ip, gateway_port))
+
+  with open('config.json', 'r') as f:
+    ip_self = json.load(f)['ip_self']
+  if(gateway_ip == ip_self):
+    gateway_ip = socket.gethostname()
+
   s.connect((gateway_ip, gateway_port))
   print ('************')
   s.send("Send replica list")
@@ -257,6 +263,12 @@ def serveClientThFunc(conn, addr):
         name_array = fname.split ('/')
         origin_ip = name_array[0]
         origin_socket = socket.socket()
+
+        with open('config.json', 'r') as f:
+          ip_self = json.load(f)['ip_self']
+        if(origin_ip == ip_self):
+          origin_ip = socket.gethostname()
+
         origin_socket.connect ((origin_ip, PORT_ORIGIN))
         origin_socket.send ("Send me updated file")
         res = origin_socket.recv (1024)
@@ -331,6 +343,12 @@ def wakingUp():
   gateway_port = int(gateway_port.encode ("utf-8"))
   s = socket.socket()
   print ("Gateway IP: %s and Gateway Port: %d" %(gateway_ip, gateway_port))
+
+  with open('config.json', 'r') as f:
+    ip_self = json.load(f)['ip_self']
+  if(gateway_ip == ip_self):
+    gateway_ip = socket.gethostname()
+
   s.connect((gateway_ip, gateway_port))
   s.send("Just Woke up Need data")
   ip_port = s.recv(1024)
@@ -338,8 +356,10 @@ def wakingUp():
   replica_port = int(ip_port.split('_')[1])
   s.close()
   s = socket.socket()
-  replica_ip = socket.gethostname()
+  # replica_ip = socket.gethostname()
   print ('Replica IP: %s and Replica Port: %d' %(replica_ip, replica_port))
+  if(ip_self == replica_ip):
+    replica_ip = socket.gethostname()
   s.connect((replica_ip, replica_port))
   s.send("Data Please !!")
   while(True):

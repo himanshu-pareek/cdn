@@ -55,6 +55,10 @@ def connectLB(LB):
 	LB_port = int(LB.split('_')[1])
 	print (LB_ip, LB_port)
 	s = socket.socket()
+	with open('config.json', 'r') as f:
+		ip_self = json.load(f)['ip_self']
+	if(ip_self == LB_ip):
+		LB_ip = socket.gethostname()
 	s.connect((LB_ip, LB_port))
 	s.send("Allot me a replica")
 	replica = s.recv(1024)
@@ -68,6 +72,12 @@ def connectReplica(replica, fname):
 	replica_port = int(replica.split('_')[1])
 	print (replica_ip, replica_port)
 	s = socket.socket()
+
+	with open('config.json', 'r') as f:
+		ip_self = json.load(f)['ip_self']
+	if(ip_self == replica_ip):
+		replica_ip = socket.gethostname()
+
 	s.connect((replica_ip, replica_port))
 	strng = s.recv(1024)
 	print("Message from the replica server : ", strng)
