@@ -34,6 +34,7 @@ PORT_R = 20012
 PORT_ORIGIN = 45010
 
 def receiveFile (s, addr):
+  print ('Inside receiveFile')
   host = addr[0]
   s.send ('1')
   file_size = s.recv(1024)

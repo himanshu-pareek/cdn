@@ -338,7 +338,12 @@ def wakingUp():
   data = json.load(f)
   f.close()
   gateway_ip_port  = data["gateway"]
-  (gateway_ip, gateway_port) = gateway_ip_port.split('_')
+  try:
+    (gateway_ip, gateway_port) = gateway_ip_port.split('_')
+  except:
+    gateway_ip = data["gateway"]
+    gateway_port = 40110
+    
   gateway_ip = gateway_ip.encode ("utf-8")
   gateway_port = int(gateway_port.encode ("utf-8"))
   s = socket.socket()
