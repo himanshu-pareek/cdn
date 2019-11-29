@@ -2,8 +2,6 @@
 
 ## Group 15
 Shashi Ranjan &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;15CS30028</br>
-Shivam Goenka &nbsp;&nbsp;&nbsp;15CS30029</br>
-Shivam Jindal &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;15CS30030</br>
 Himanshu Pareek &nbsp;15CS30016</br>
 
 ### Features 
