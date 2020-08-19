@@ -60,7 +60,7 @@ def serveOrigin():
 		f.close()
 
 		if addr[0] not in data["origin_ips"]:
-			data["origin_ips"].append(adr[0])
+			data["origin_ips"].append(addr[0])
 
 		with open('origin_ips.json', 'w') as fp:
 			json.dump(data, fp)
